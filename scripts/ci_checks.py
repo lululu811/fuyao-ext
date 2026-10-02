@@ -1,12 +1,13 @@
 #!/usr/bin/env python3
 """ci_checks.py — 公开仓库的发布前闸门
 
-四道检查，全部只读，不修改任何文件：
+五道检查，全部只读，不修改任何文件：
 
-1. DDL 可执行   —— 把 schema/*.sql 灌进干净内存库，能建出来
-2. 结构一致     —— export_schema.py --check（DDL 与源库同步）
-3. 密钥扫描     —— 硬编码凭据、webhook、长随机串
-4. 路径泄漏     —— 开发者本机绝对路径
+1. DDL 可执行   —— 把 schema/*.sql 逐域灌进干净内存库，能建出来
+2. 结构一致     —— export_schema.py --check（DDL 与源库同步；无源库时跳过）
+3. 依赖覆盖     —— 每个第三方 import 都在 pyproject 里声明过
+4. 密钥扫描     —— 硬编码凭据、webhook、长随机串
+5. 路径泄漏     —— 开发者本机绝对路径
 
 任一失败退出码非 0。
 
@@ -166,9 +167,73 @@ def check_schema_sync() -> tuple[list[str], str | None]:
     return [], None
 
 
+def check_dep_coverage() -> tuple[list[str], str | None]:
+    """核对每个第三方 import 都在 pyproject 依赖清单里声明过。
+
+    起因：``ingestors/fuyao/client.py`` import 了 ``requests`` 但未声明，
+    本地 venv 靠 dev 工具的传递依赖蒙混过关，CI 干净安装直接
+    ``ModuleNotFoundError``。这类问题只有靠核对才能发现。
+
+    难点是 import 名与 PyPI 包名不一致，必须显式映射。
+    """
+    import ast
+
+    import tomllib
+
+    problems: list[str] = []
+    proj = tomllib.loads((ROOT / "pyproject.toml").read_text())["project"]
+    declared = {
+        re.split(r"[<>=!\[ ]", d)[0].strip().lower() for d in proj.get("dependencies", [])
+    }
+    declared |= {d.lower() for d in proj.get("optional-dependencies", {}).get("dev", [])}
+    # 开发期工具，无需在运行依赖里
+    declared |= {"pytest", "ruff"}
+
+    # import 名 -> PyPI 包名
+    ALIAS = {
+        "talib": "ta-lib",
+        "yaml": "pyyaml",
+        "pandas_ta_classic": "pandas-ta-classic",
+    }
+    STDLIB = set(sys.stdlib_module_names) | {"__future__"}
+
+    # 项目自身的顶层模块（first-party），不是第三方依赖
+    FIRST_PARTY = {p.name for p in ROOT.iterdir() if (p / "__init__.py").exists()}
+    FIRST_PARTY.add("paths")  # py-modules，无 __init__.py
+
+    used: dict[str, set[str]] = {}
+    for f in _files():
+        if f.suffix != ".py":
+            continue
+        try:
+            tree = ast.parse(f.read_text(encoding="utf-8", errors="replace"))
+        except SyntaxError:
+            continue
+        for node in ast.walk(tree):
+            mods = []
+            if isinstance(node, ast.Import):
+                mods = [a.name.split(".")[0] for a in node.names]
+            elif isinstance(node, ast.ImportFrom) and node.level == 0 and node.module:
+                mods = [node.module.split(".")[0]]
+            for m in mods:
+                if m in STDLIB or m.startswith("_") or m in FIRST_PARTY:
+                    continue
+                used.setdefault(m, set()).add(str(f.relative_to(ROOT)))
+
+    for mod, where in sorted(used.items()):
+        pkg = ALIAS.get(mod, mod)
+        if pkg.lower() not in declared:
+            sample = ", ".join(sorted(where)[:3])
+            problems.append(
+                f"import 了 `{mod}`（PyPI 包名 `{pkg}`）但依赖清单未声明  ← {sample}"
+            )
+    return problems, None
+
+
 CHECKS = [
     ("DDL 可执行", check_ddl_executable),
     ("结构一致", check_schema_sync),
+    ("依赖覆盖", check_dep_coverage),
     ("密钥扫描", lambda: (check_secrets(_files()), None)),
     ("路径泄漏", lambda: (check_paths(_files()), None)),
 ]
