@@ -28,18 +28,48 @@ A股本地数据仓库的**数据契约 + 采集抽象 + 指标引擎**。
 
 ## 项目状态
 
-**⚠️ 骨架阶段（Phase 0）。** 目录结构、依赖清单、许可与决策记录已就位，
-指标引擎与采集层代码尚未迁入，因此**当前无法运行**。分阶段计划见
-[`docs/OPEN_SOURCE_PLAN.md`](docs/OPEN_SOURCE_PLAN.md)。
+**⚠️ Phase 1 完成，仍不可端到端运行。** 指标引擎已迁入并通过 import 与语法校验，
+依赖改造与路径参数化已完成；但采集层（Phase 3）尚未实现，因此**目前没有数据可供计算**。
 
 | 阶段 | 内容 | 状态 |
 |---|---|---|
 | 0 | 仓库骨架、许可、依赖清单、决策记录 | ✅ |
-| 1 | 指标引擎迁入、依赖改造、路径参数化 | ⬜ |
+| 1 | 指标引擎迁入、依赖改造、路径参数化 | ✅ |
 | 2 | 数据契约 DDL 导出与生成器 | ⬜ |
 | 3 | `Ingestor` 协议 + 上游参考实现 | ⬜ |
-| 4 | 文档：数据来源说明、字段字典 | ⬜ |
+| 4 | 文档：数据来源说明、字段字典 | 🟡 部分（上游说明已完成，字段映射待补） |
 | 5 | CI：DDL 可执行性 / 密钥 / 路径泄漏扫描 | ⬜ |
+
+待决策问题见 [`docs/OPEN_ISSUES.md`](docs/OPEN_ISSUES.md)。
+
+## 目录结构
+
+```
+paths.py            所有本地路径的唯一来源（环境变量可覆盖）
+indicator/          指标引擎
+  compute.py          统一计算 API：config → DataFrame
+  adapter_talib.py    TA-Lib 后端（~80 个 calc_*）
+  adapter_pandas_ta.py pandas-ta 后端（~65 个 calc_*）
+  loader.py           从 market.duckdb 读日线 OHLCV
+schema/             数据契约
+  indicators_schema.py 从 config 推导列清单并生成 DDL
+  *.sql               数据契约 DDL（Phase 2）
+ingestors/          采集层
+  fuyao/              上游参考实现（Phase 3）
+scripts/            CLI 入口
+indicators_config.yaml  指标配置：列、参数、后端选择的唯一来源
+```
+
+## 路径配置
+
+代码中**不含任何绝对路径**，全部经 `paths.py` 解析：
+
+| 环境变量 | 默认值 | 用途 |
+|---|---|---|
+| `FUYAO_HOME` | `~/.hithink-finance` | 数据工作区根目录 |
+| `FUYAO_MARKET_DB` | `$FUYAO_HOME/market.duckdb` | 行情库 |
+| `FUYAO_INDICATORS_DB` | `$FUYAO_HOME/indicators.duckdb` | 指标库 |
+| `FUYAO_INDICATORS_CONFIG` | `./indicators_config.yaml` | 指标配置 |
 
 ## 安装
 

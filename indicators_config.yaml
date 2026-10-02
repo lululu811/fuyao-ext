@@ -1,0 +1,635 @@
+# Indicators configuration — 全量版
+#
+# 列命名:
+#   <category>_<name>_<param_slug>           单输出
+#   <category>_<name>_<param_slug>_<output>  多输出
+
+# 头部原来写死的「221 列」早已过期(加 6 个 zettaranc 适配列后实际 231,
+# 本轮再 +13 列)。现在列数由 schema/indicators_schema.py 的 expand_columns()
+# 从本文件推导,不要再往这里写死数字 —— 要查列数就跑 expand_columns。
+#
+# 2026-09-30 评估过但本轮没加的两个候选(留着,免得下次重新调研):
+#   * MAVP 变周期均线 —— TA-Lib 的 periods 是逐 bar 数组而非标量,现有
+#     params: [...] 表达不了,需要先定一条周期生成规则(属策略参数决策)。
+#   * VP 成交量分布 —— ta.vp(close, volume) 返回 10 档分布快照 DataFrame,
+#     不是逐日序列,无法像其他指标一样摊平成宽表的列。真要加得先定义
+#     「取哪几个字段、怎么聚合成日频」。
+#   * SAREXT 扩展抛物线 —— 实测本 build 的 talib.SAREXT 输出会发散:
+#     600519.SH(价格 1151~1772)上 50%+ 取值为负、末值 -1301,且对 startValue
+#     取 0.02/0/首收盘价 三种变体结果一致,不是参数语义问题。同题的
+#     calc_psar(talib.SAR)末值 1277、零负值正常。相对 PSAR 的增量只是
+#     「多空两侧用不同加速上限」,不值得冒往 16GB 宽表写脏数据的风险。
+#   * KST 库普考克 —— 实测值域比标准定义大 100 倍(茅台手工复算 [-96.8,138.0]
+#     vs 库 [-9684.7,13804.4],重叠段最大绝对差 13666);同一指标在不同价位个股上
+#     的「KST/价格量级」从 10x 跳到 1951x,不是干净的缩放误差。
+#   * EFI 效率因子 —— 库输出 ±5.45e8,按定义 (C-C_prev)/V*10000 手算只有 ±0.13,
+#     差约 4e9。
+#   * CG 钱得 Kroll 通道 —— 值域 [-5.63,-5.15]、666 根里 657 个不同值,而同期
+#     价格在 1237~1259 波动:通道与价格完全无关,是坏的。
+#   * RVGI 相对成交量指数 —— 与定义式手工复算偏差 89.9%,且无法确认本 fork
+#     用的确切归一化方式;无法验证就不进表。
+#
+# 教训:第二批 30 个候选里有 7 个(23%)是坏的,而且全都表现为「能算、不报错、
+# 值域离谱」。所以任何新指标进表前都要手工复算一遍定义,不能只看函数存在。
+
+overlap:
+  sma:
+    params: [5, 10, 20, 60, 120, 250]
+    backend: talib
+    enabled: true
+  ema:
+    params: [5, 10, 20, 60]
+    backend: talib
+    enabled: true
+  wma:
+    params: [20]
+    backend: talib
+    enabled: true
+  dema:
+    params: [20]
+    backend: talib
+    enabled: true
+  tema:
+    params: [20]
+    backend: talib
+    enabled: true
+  trima:
+    params: [20]
+    backend: talib
+    enabled: true
+  kama:
+    params: [14]
+    backend: talib
+    enabled: true
+  t3:
+    params: [5]
+    backend: talib
+    enabled: true
+  mama:
+    params: [{}]
+    backend: talib
+    enabled: true
+    outputs: [mama, fama]
+  ht_trendline:
+    params: [{}]
+    backend: talib
+    enabled: true
+  vwma:
+    # 成交量加权均线。成本线体系里补上中长周期那条(已有 vwap 是会话内累积加权)
+    params: [20]
+    backend: talib
+    enabled: true
+  hma:
+    params: [20]
+    backend: pandas_ta
+    enabled: true
+  alma:
+    params: [14]
+    backend: pandas_ta
+    enabled: true
+  vidya:
+    params: [14]
+    backend: pandas_ta
+    enabled: true
+  rma:
+    params: [14]
+    backend: pandas_ta
+    enabled: true
+  zlma:
+    params: [14]
+    backend: pandas_ta
+    enabled: true
+  mcgd:
+    params: [10]
+    backend: pandas_ta
+    enabled: true
+  fwma:
+    params: [20]
+    backend: pandas_ta
+    enabled: true
+  hwma:
+    params: [10]
+    backend: pandas_ta
+    enabled: true
+  jma:
+    params: [14]
+    backend: pandas_ta
+    enabled: true
+  pwma:
+    params: [14]
+    backend: pandas_ta
+    enabled: true
+  swma:
+    params: [10]
+    backend: pandas_ta
+    enabled: true
+  ssf:
+    params: [10]
+    backend: pandas_ta
+    enabled: true
+  sinwma:
+    params: [14]
+    backend: pandas_ta
+    enabled: true
+
+momentum:
+  rsi:
+    params: [6, 12, 14, 24]
+    backend: talib
+    enabled: true
+  macd:
+    params: [[12, 26, 9], [5, 35, 5]]
+    backend: talib
+    enabled: true
+    outputs: [macd, signal, hist]
+  stoch:
+    params: [[14, 3, 3]]
+    backend: talib
+    enabled: true
+    outputs: [slowk, slowd]
+  stochrsi:
+    params: [14]
+    backend: talib
+    enabled: true
+    outputs: [fastk, fastd]
+  willr:
+    params: [14]
+    backend: talib
+    enabled: true
+  cci:
+    params: [20]
+    backend: talib
+    enabled: true
+  adx:
+    params: [14]
+    backend: talib
+    enabled: true
+  aroon:
+    params: [25]
+    backend: talib
+    enabled: true
+    outputs: [aroonup, aroondown]
+  kdj:
+    params: [[9, 3]]
+    backend: pandas_ta
+    enabled: true
+    outputs: [k, d, j]
+  mom:
+    params: [10]
+    backend: talib
+    enabled: true
+  roc:
+    params: [10]
+    backend: talib
+    enabled: true
+  rocp:
+    params: [10]
+    backend: talib
+    enabled: true
+  rocr:
+    params: [10]
+    backend: talib
+    enabled: true
+  trix:
+    params: [15]
+    backend: talib
+    enabled: true
+  tsi:
+    params: [[13, 25]]
+    backend: talib
+    enabled: true
+  cmo:
+    params: [14]
+    backend: talib
+    enabled: true
+  apo:
+    params: [[12, 26]]
+    backend: talib
+    enabled: true
+  ppo:
+    params: [[12, 26]]
+    backend: talib
+    enabled: true
+  stochf:
+    params: [[5, 3]]
+    backend: pandas_ta
+    enabled: true
+    outputs: [fastk, fastd]
+  er:
+    params: [10]
+    backend: pandas_ta
+    enabled: true
+  eri:
+    params: [13]
+    backend: pandas_ta
+    enabled: true
+    outputs: [bullp, bearp]
+  fisher:
+    params: [[9, 1]]
+    backend: pandas_ta
+    enabled: true
+    outputs: [fisher, signal]
+  qqe:
+    params: [[14, 5]]
+    backend: pandas_ta
+    enabled: true
+    outputs: [qqe, rsima, long, short, band_long, band_short, diff]
+  rsx:
+    params: [14]
+    backend: pandas_ta
+    enabled: true
+  smi:
+    params: [[5, 20, 5]]
+    backend: pandas_ta
+    enabled: true
+    outputs: [smi, signal, oscillator]
+  dm:
+    params: [14]
+    backend: pandas_ta
+    enabled: true
+    outputs: [plus, minus]
+  brar:
+    # 多空能量比:AR 多方能量 / BR 空方能量。A股情绪判断的老指标
+    params: [{}]
+    backend: pandas_ta
+    enabled: true
+    outputs: [ar, br]
+  stc:
+    # Schaff 趋势周期。比 MACD 早一根转趋势,主线有界 0~100
+    params: [{}]
+    backend: pandas_ta
+    enabled: true
+    outputs: [line, macd, stoch]
+  lrsi:
+    # Laguerre RSI。四级滤波逼近 RSI,平滑且几乎不延迟
+    params: [14]
+    backend: pandas_ta
+    enabled: true
+  bias:
+    # 乖离率 (C - MA)/MA。A股短线常用
+    params: [14]
+    backend: pandas_ta
+    enabled: true
+  ultosc:
+    # 终极振荡器。7/14/28 三周期超买超卖的加权,有界 [0,100]
+    params: [[7, 14, 28]]
+    backend: talib
+    enabled: true
+  ao:
+    # Awesome 振荡:5 期中位价 - 34 期中位价
+    params: [[5, 34]]
+    backend: talib
+    enabled: true
+  coppock:
+    # 库普考克。长期动量,专判牛熊转换
+    params: [[10, 10, 14]]
+    backend: talib
+    enabled: true
+  rvi:
+    # 相对波动率指数。stddev=252(一年)才有金融含义
+    params: [[10, 252]]
+    backend: talib
+    enabled: true
+
+trend:
+  psar:
+    params: [{}]
+    backend: talib
+    enabled: true
+  adx:
+    params: [14]
+    backend: talib
+    enabled: true
+  aroon:
+    params: [25]
+    backend: talib
+    enabled: true
+    outputs: [aroonup, aroondown]
+  dpo:
+    params: [14]
+    backend: pandas_ta
+    enabled: true
+  vortex:
+    params: [14]
+    backend: pandas_ta
+    enabled: true
+    outputs: [plus, minus]
+  supertrend:
+    params: [[10, 3.0]]
+    backend: pandas_ta
+    enabled: true
+    outputs: [trend, direction, long, short]
+  chop:
+    params: [14]
+    backend: pandas_ta
+    enabled: true
+  inertia:
+    params: [20]
+    backend: pandas_ta
+    enabled: true
+  decay:
+    params: [10]
+    backend: pandas_ta
+    enabled: true
+  qstick:
+    params: [14]
+    backend: talib
+    enabled: true
+  accbands:
+    # 加速带:上下轨 + 中轨。带宽收缩常预示突破
+    params: [20]
+    backend: pandas_ta
+    enabled: true
+    outputs: [lower, mid, upper]
+  vwmacd:
+    # 成交量加权 MACD:把成交量塞进 MACD 加权,放大量能影响
+    params: [[12, 26, 9]]
+    backend: pandas_ta
+    enabled: true
+    outputs: [macd, hist, signal]
+  ichimoku:
+    # 一目均衡表:转换线/基准线/先行带A/先行带B/迟行线
+    params: [{}]
+    backend: pandas_ta
+    enabled: true
+    outputs: [tenkan, kijun, senkou_a, senkou_b, chikou]
+
+volatility:
+  bbands:
+    params: [[20, 2.0], [10, 1.5]]
+    backend: talib
+    enabled: true
+    outputs: [upper, middle, lower]
+  atr:
+    params: [14]
+    backend: talib
+    enabled: true
+  natr:
+    params: [14]
+    backend: talib
+    enabled: true
+  donchian:
+    params: [20]
+    backend: talib
+    enabled: true
+    outputs: [upper, middle, lower]
+  kc:
+    params: [[20, 2]]
+    backend: pandas_ta
+    enabled: true
+    # 顺序必须与 pandas_ta_classic.kc() 的返回列顺序一致：
+    # KCLe_20_2.0, KCBe_20_2.0, KCUe_20_2.0 = lower, middle, upper。
+    # adapter_pandas_ta.calc_kc 虽按角色名建字典，最后仍按本列表重排
+    # (ordered -> _df_rename_cols)，所以这里写成 [upper, middle, lower]
+    # 会让 upper 列拿到 lower 的值 —— 2026-10-01 实测全库 100% 的行
+    # kc_upper < kc_lower，两列互换，直接导致 Keltner 挤压信号永不触发
+    # (signal_frequency_audit.md 记为 dead)。
+    outputs: [lower, middle, upper]
+  trange:
+    params: [{}]
+    backend: talib
+    enabled: true
+  vhf:
+    # 垂直水平过滤:(H+L)/2 的纵向跨度 / 横向跨度,有界 [0,1],
+    # 接近 1 = 趋势性强。adapter 里传的是 (H+L)/2 而不是收盘价
+    params: [14]
+    backend: talib
+    enabled: true
+
+volume:
+  obv:
+    params: [{}]
+    backend: talib
+    enabled: true
+  vosc:
+    # 成交量振荡:短期/长期成交量均线的差
+    params: [[5, 10]]
+    backend: pandas_ta
+    enabled: true
+  ha:
+    # Heikin-Ashi 日本K线,4 输出。平滑跳空,代价是拐点滞后 ——
+    # 适合看方向,不适合看精确买卖点
+    params: [{}]
+    backend: pandas_ta
+    enabled: true
+    outputs: [open, high, low, close]
+  ad:
+    params: [{}]
+    backend: talib
+    enabled: true
+  adosc:
+    params: [[3, 10]]
+    backend: talib
+    enabled: true
+  mfi:
+    params: [14]
+    backend: talib
+    enabled: true
+  cmf:
+    params: [20]
+    backend: pandas_ta
+    enabled: true
+  vwap:
+    params: [{}]
+    backend: pandas_ta
+    enabled: true
+  pvt:
+    params: [{}]
+    backend: talib
+    enabled: true
+  nvi:
+    params: [{}]
+    backend: talib
+    enabled: true
+  pvi:
+    params: [{}]
+    backend: talib
+    enabled: true
+  emv:
+    params: [{}]
+    backend: pandas_ta
+    enabled: true
+  eom:
+    params: [14]
+    backend: pandas_ta
+    enabled: true
+  kvo:
+    params: [[34, 55]]
+    backend: pandas_ta
+    enabled: true
+    outputs: [kvo, signal]
+  aobv:
+    params: [[5, 12]]
+    backend: pandas_ta
+    enabled: true
+    outputs: [obv, min, max, ema5, ema12, lr, sr]
+  vfi:
+    params: [[13, 0.5]]
+    backend: pandas_ta
+    enabled: true
+  wad:
+    params: [{}]
+    backend: pandas_ta
+    enabled: true
+  pvr:
+    params: [{}]
+    backend: pandas_ta
+    enabled: true
+
+cycles:
+  ht_dcperiod:
+    params: [{}]
+    backend: talib
+    enabled: true
+  ht_dcphase:
+    params: [{}]
+    backend: talib
+    enabled: true
+  ht_phasor:
+    params: [{}]
+    backend: talib
+    enabled: true
+    outputs: [inphase, quadrature]
+  ht_sine:
+    params: [{}]
+    backend: talib
+    enabled: true
+    outputs: [sine, leadsine]
+  ht_trendmode:
+    params: [{}]
+    backend: talib
+    enabled: true
+
+statistics:
+  beta:
+    params: [20]
+    backend: talib
+    enabled: true
+  correl:
+    params: [20]
+    backend: talib
+    enabled: true
+  linearreg:
+    params: [14]
+    backend: talib
+    enabled: true
+  linearreg_angle:
+    params: [14]
+    backend: talib
+    enabled: true
+  linearreg_intercept:
+    params: [14]
+    backend: talib
+    enabled: true
+  linearreg_slope:
+    params: [14]
+    backend: talib
+    enabled: true
+  tsf:
+    params: [14]
+    backend: talib
+    enabled: true
+  stddev:
+    params: [20]
+    backend: talib
+    enabled: true
+  var:
+    params: [20]
+    backend: talib
+    enabled: true
+  entropy:
+    params: [10]
+    backend: pandas_ta
+    enabled: true
+  skew:
+    params: [30]
+    backend: pandas_ta
+    enabled: true
+  kurtosis:
+    params: [30]
+    backend: pandas_ta
+    enabled: true
+  zscore:
+    params: [20]
+    backend: pandas_ta
+    enabled: true
+  mad:
+    params: [20]
+    backend: pandas_ta
+    enabled: true
+  quantile:
+    params: [[20, 0.5]]
+    backend: pandas_ta
+    enabled: true
+  ui:
+    # 溃疡指数:衡量「持有这只票有多痛」,回撤平方均值开方
+    params: [14]
+    backend: pandas_ta
+    enabled: true
+
+performance:
+  log_return:
+    params: [1]
+    backend: pandas_ta
+    enabled: true
+  percent_return:
+    params: [1]
+    backend: pandas_ta
+    enabled: true
+  drawdown:
+    # 回撤三件套:绝对值 / 比例 / 对数。策略层算风险敞口直接用这三列
+    #
+    # 中间那列 2026-10-01 由 `pct` 改名 `frac`:ta.drawdown 返回的 DD_PCT 是
+    # 0~1 的**比例**(实测全库 max=0.978,即 97.8% 回撤存成 0.978),不是百分数。
+    # 列名带 _pct 会让人按"回撤>20"这种百分数口径写阈值,于是永不触发。
+    # 与 momentum_bias_14(比值)一致,这里统一用 frac 表明是比例。
+    params: [20]
+    backend: pandas_ta
+    enabled: true
+    outputs: [dd, frac, log]
+
+candles:
+  all_cdl:
+    params: [true]
+    backend: talib
+    enabled: true
+
+metadata:
+  - thscode       VARCHAR PRIMARY KEY PART
+  - date          DATE    PRIMARY KEY PART
+  - backend       VARCHAR
+  - computed_at   TIMESTAMP
+
+zettaranc:
+  # 白线 Z哥: EMA(EMA(CLOSE,10),10) — 短期趋势线、牵牛绳
+  zg_white:
+    params: [10]
+    backend: pandas_ta
+    enabled: true
+  # 黄线 大哥线: (MA14+MA28+MA57+MA114)/4 — 主力成本线、极限洗盘极限位
+  dg_yellow:
+    params: [14]
+    backend: pandas_ta
+    enabled: true
+  # BBI 多空线: (MA3+MA6+MA12+MA24)/4 — 少妇战法 1.0 核心
+  bbi:
+    params: [{}]
+    backend: pandas_ta
+    enabled: true
+  # 砖型图 brick_value: (close - open) / (high - low) — Delta 理论变体,A 股 4 天情绪循环
+  brick_value:
+    params: [{}]
+    backend: pandas_ta
+    enabled: true
+  # ⚠️ RSL 不在本 config 中 —— 见 docs/OPEN_ISSUES.md 第 1 条
+  #
+  # RSL（N 日涨幅在滚动窗口内的百分位排名）由 scripts/add_zettaranc_columns.py
+  # 负责，产出 zettaranc_rsl_rank_15 / _rank_105。这两列是**线上表里实际存在的**。
+  #
+  # 本类目此前还有 rsl_short:[3] / rsl_long:[21] 两条，经与线上表比对确认
+  # **从未被应用**（线上表有 _rank_15/_rank_105，无 _short_3/_long_21），
+  # 且两者公式等价 —— 保留只会让 add_indicators.py 回填出两列重复的 RSL。已移除。
+  #
+  # 无法直接改用 config 驱动的原因：config 的列名由单一 params 推导
+  # (_make_col_prefix)，而 RSL 需要两组数字 —— pct_change 回看周期(3/21)
+  # 与排名窗口(15/105) 不相等。

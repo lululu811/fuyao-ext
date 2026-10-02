@@ -10,16 +10,19 @@ readme = "README.md"
 license = { file = "LICENSE" }
 requires-python = ">=3.10"
 
-# 依赖清单从实际 import 扫描得出（a-stock 自有代码，排除 vendored 目录）：
-#   talib           <- adapter/adapter_talib.py
-#   pandas_ta_classic <- adapter/adapter_pandas_ta.py, scripts/{fix_kc,add_zettaranc}_columns.py
-#   duckdb          <- adapter/loader.py, scripts/*.py
-#   yaml            <- schema/indicators_schema.py, adapter/compute.py
-#   pandas / numpy  <- 全部计算路径
+# ---------------------------------------------------------------------------
+# 依赖清单从实际 import 扫描得出（原 a-stock 仓无任何依赖声明，依赖是靠
+# sys.path 注入仓库内的本地目录解析的 —— 那套隐式路径注入已全部移除）：
+#   talib            <- indicator/adapter_talib.py
+#   pandas_ta_classic<- indicator/adapter_pandas_ta.py, scripts/{fix_kc,add_zettaranc}_columns.py
+#   duckdb           <- indicator/loader.py, scripts/*.py
+#   yaml             <- schema/indicators_schema.py, indicator/compute.py
+#   pandas / numpy   <- 全部计算路径
 #
 # 开发环境实测版本（Apple Silicon / macOS）：
 #   Python 3.14.7 · pandas 3.0.5 · numpy 2.5.3 · duckdb 1.5.5
 #   ta-lib 0.8.0 · pandas-ta-classic 0.8.33.dev63 · PyYAML 6.0.3
+# ---------------------------------------------------------------------------
 dependencies = [
     "duckdb>=1.0",
     "pandas>=2.0",
@@ -35,25 +38,21 @@ dev = [
     "ruff>=0.5",
 ]
 
-# ---------------------------------------------------------------------------
-# NOTE: 下列 package 声明对应 Phase 1 迁入的代码。
-# schema/ 现有 indicators_schema.py 的上游版本没有 __init__.py，
-# 依赖 Python 3.3+ 的隐式 namespace package 才能 import；正式发布时需显式补上。
-# ---------------------------------------------------------------------------
 [tool.setuptools]
-packages = ["adapter", "schema", "ingestors", "ingestors.fuyao"]
+packages = ["indicator", "schema", "ingestors", "ingestors.fuyao"]
+py-modules = ["paths"]
 
 [tool.setuptools.package-data]
 schema = ["*.sql"]
 
 [tool.ruff]
-line-length = 100
+# 迁入代码中最长行为 131 字符（多为进度打印与数据类名列表）。
+# 不做全量重排版以免在数值计算代码中引入风险，仅对新增代码从紧。
+line-length = 120
 target-version = "py310"
 
 [tool.ruff.lint]
-# 沿用上游既有风格：大量脚本用 sys.path.insert 后再 import 本地包
 select = ["E", "F", "W", "I"]
-ignore = ["E402"]  # module level import not at top of file
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

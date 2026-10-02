@@ -48,43 +48,43 @@ fuyao-ext/
 
 ---
 
-## Phase 0 — 骨架
+## Phase 0 — 骨架 ✅
 
-- [ ] `git init`，默认分支 `main`
-- [ ] `LICENSE`（MIT）
-- [ ] `pyproject.toml` —— **两个现有仓都没有**，可复现性目前为零
-- [ ] `.gitignore`（含 `data/`、`*.duckdb`、`__pycache__/`、`.omc/`、`.bak.*`）
-- [ ] `README.md`，**必须在首屏显著位置声明**：
-  - 上游数据服务为同花顺 hithink-finance（`fuyao.aicubes.cn`）
-  - 本项目不提供任何数据、不保证上游可用性
-  - 许可与免责：数据版权归同花顺所有；本项目许可仅覆盖代码
-- [ ] 历史处理：两个源仓的 commit 1 均为「建立版本控制基线(此前无 git)」，
-      共 5–7 个 commit 覆盖全部历史。**建议 squash 成单条初始提交**，
-      否则读者会看到"5 天写完 264 列指标引擎"。
+- [x] `git init`，默认分支 `main`
+- [x] `LICENSE`（MIT + DATA NOTICE：许可仅覆盖代码，数据不在授权范围）
+- [x] `pyproject.toml` —— 依赖清单由实际 import 扫描得出
+- [x] `.gitignore`（数据 / 凭据 / vendored 依赖 / 私有层四类拦截）
+- [x] `README.md`，首屏声明上游数据服务为同花顺 hithink-finance
+- [x] 历史 squash 成单条初始提交
 
-## Phase 1 — 指标引擎迁移（从 `a-stock`）
+## Phase 1 — 指标引擎迁移（从 `a-stock`）✅
 
-来源：`/Users/chenlei/007_DB/a-stock`（31 个跟踪文件，git 状态干净）
+来源：`/Users/chenlei/007_DB/a-stock`。共迁入 14 个文件、3,626 行。
 
-- [ ] 迁移 `adapter/`、`schema/`、`scripts/`、`indicators_config.yaml`
-- [ ] **依赖改造**：现无依赖清单，依赖是 gitignore 掉的 `pandas-ta-classic/` 与
-      `ta-lib-python/` 两个本地副本，靠 `add_zettaranc_columns.py:29-33` 手动
-      `sys.path` 注入（目录名带连字符，必须显式指到包目录）。改为 `pyproject.toml`
-      正常声明依赖
-- [ ] **路径参数化**：以下位置硬编码了 `/Users/chenlei/...`，统一走环境变量
-      - `adapter/loader.py:24`（`DEFAULT_DB`）
-      - `scripts/indicators_sync.py:32-33`
-      - `scripts/add_zettaranc_columns.py:41`
-      - `scripts/build_indicators.py:23`
-      - `scripts/add_indicators.py:45`
-      - `scripts/fix_kc_columns.py:39`
-      - `strategies/sql/` 下 12 处 `ATTACH '/Users/chenlei/.hithink-finance/...'`
-- [ ] **修 RSL 双实现不一致**（发布前必修，属真实缺陷）：
-      `adapter/adapter_pandas_ta.py:474-485` 用 `rolling(length*5)`，
-      `add_zettaranc_columns.py:122-123` 用固定 15/105 窗口，**两条路径产出不同值**。
-      收敛为单一实现
-- [ ] 修 `indicators_sync.py:160` 类型标注引用 `pd` 但该文件从未 `import pandas`
-      （因 `from __future__ import annotations` 暂不崩，属潜在缺陷）
+- [x] 迁移 `adapter/` → **`indicator/`**（改名：`adapter` 对开源项目是误导名，
+      实际是引擎核心）、`schema/indicators_schema.py`、`scripts/*.py`、
+      `indicators_config.yaml`
+- [x] **排除私有层**：`strategies/`（11 个文件）、`b1.md`、
+      `scripts/b1_screen.sql`（B1 选股模型 SQL，属策略层）
+- [x] **依赖改造**：移除全部 `sys.path` 隐式路径注入（含
+      `sys.path.insert(ROOT / "pandas-ta-classic")`），改为 `pyproject.toml` 声明
+- [x] **路径参数化**：新增 `paths.py` 作为唯一来源，18 处硬编码路径全部替换，
+      7 个环境变量可覆盖
+- [x] 修 `indicators_sync.py:160` 类型标注引用 `pd` 但未 import
+- [x] 补 `schema/__init__.py`（上游缺，靠隐式 namespace package 才能 import）
+- [x] 验证：全部文件 `compileall` 通过；6 个脚本 import 链全通
+- [x] `_derive_lookback()` 实测推导 252 bar → 455 自然日
+
+### ⚠️ 未能完成：RSL 双实现收敛
+
+原计划记为"两条路径产出不同值"。**经核实该判断有误** ——
+`length*5` 在 length=3/21 时恰好等于脚本的固定窗口 15/105，`min_periods` 也一致，
+**数值完全等价**。
+
+真实问题是**产出两套列名**（`zettaranc_rsl_short_3`/`_long_21` 与
+`zettaranc_rsl_rank_15`/`_rank_105`），且前者正是被判定为误导的旧名。
+收敛需要改函数签名，且会影响线上 10,349,853 行表的 schema，
+因此**未擅自改动**，转为待决策项 → [`OPEN_ISSUES.md`](OPEN_ISSUES.md) 第 1 条。
 
 ## Phase 2 — 数据契约 DDL
 
