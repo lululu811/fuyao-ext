@@ -137,7 +137,9 @@ def _indicators_ddl() -> str:
     import yaml
 
     cfg = yaml.safe_load(INDICATORS_CONFIG.read_text())
-    return generate_create_table(cfg).strip() + ";"
+    # generate_create_table 已带结尾分号，先剥掉再统一补一个，
+    # 否则会产出 `));;` 导致下游 DDL 解析器漏掉这张表。
+    return generate_create_table(cfg).strip().rstrip(";") + ";"
 
 
 def build() -> dict[str, str]:

@@ -275,4 +275,4 @@ CREATE TABLE IF NOT EXISTS v_indicators_daily (
     candles_cdl_upsidegap2crows_0 DOUBLE,
     candles_cdl_xsidegap3methods_0 DOUBLE,
     PRIMARY KEY (thscode, date)
-);;
+);
