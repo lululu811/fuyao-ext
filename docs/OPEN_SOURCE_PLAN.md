@@ -88,11 +88,14 @@ fuyao-ext/
 
 ## Phase 2 — 数据契约 DDL
 
-- [ ] 从现存 7 个 DuckDB 导出全部 **77 张基表 + 41 个视图**的 DDL 到 `schema/*.sql`
+- [x] 从现存 7 个 DuckDB 导出全部 **62 张基表 + 41 个视图**的 DDL 到 `schema/*.sql`
 - [ ] `stg_*` 三张表全为空，**保留结构但必须在文档中如实标注"当前为空"**，
       不可让其看起来像缺陷
-- [ ] 建库时无任何主键约束（DDL 里声明过，但数据绕开约束批量写入），
-      需一个自检脚本比对 DDL 与现存库是否一致 —— 约束保证不了这件事
+- [x] 自检脚本 `scripts/export_schema.py --check`：干净内存库执行 DDL 后，
+      与现存库逐对象逐列比对。
+      **更正**：62 张表中 59 张**确有** PRIMARY KEY 声明（此前误记为"零主键"，
+      起因是查了 `duckdb_constraints()`，而 DuckDB 不把约束存进 catalog，
+      只在 `duckdb_tables().has_primary_key` 留布尔标记）。仅 3 张空的 `stg_*` 无 PK。
 - [ ] 生成器：表清单、ER 图、字段字典均从 DDL 生成（[ADR-0005](adr/0005-ddl-as-contract-source-of-truth.md)）
 
 ## Phase 3 — 采集层
