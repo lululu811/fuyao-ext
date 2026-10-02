@@ -46,7 +46,11 @@ ALL_DOMAINS = [*DOMAINS, INDICATORS_DOMAIN]
 # 由专用脚本独占维护、不经 indicators_config.yaml 推导的列。
 # 校验 config 推导结果时，这些列允许存在于线上表但不在 config 里。
 # 任何新增都必须在此登记，否则 verify() 会报"未登记为脚本独占"。
-# 背景见 docs/OPEN_ISSUES.md 第 1 条。
+#
+# RSL 为何走脚本：config 的列名由单一 params 推导（indicator/compute.py 的
+# _make_col_prefix），而 RSL 需要两组数字 —— pct_change 回看周期(3/21) 与
+# 排名窗口(15/105) 不相等，产不出 zettaranc_rsl_rank_15 这个名字。
+# 详见 indicators_config.yaml 中 zettaranc: 类目的注释。
 SCRIPT_OWNED_COLUMNS = {
     "v_indicators_daily": {
         "zettaranc_rsl_rank_15",    # scripts/add_zettaranc_columns.py
@@ -246,7 +250,6 @@ def verify(files: dict[str, str]) -> list[str]:
         tbl = "v_indicators_daily"
         want, have = _columns(con, tbl), _columns(live, tbl)
         # 由 scripts/add_zettaranc_columns.py 独占维护、不经 config 推导的列。
-        # 见 docs/OPEN_ISSUES.md 第 1 条。
         script_owned = SCRIPT_OWNED_COLUMNS.get(tbl, set())
         for col in sorted(want - have):
             problems.append(

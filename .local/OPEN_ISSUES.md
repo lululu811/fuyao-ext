@@ -1,7 +1,7 @@
 # 公开前必须处理的问题
 
 > 本文件记录**已确认存在、但需要你拍板才能改**的问题。
-> 与 [`OPEN_SOURCE_PLAN.md`](OPEN_SOURCE_PLAN.md) 的区别：那是执行步骤，这是待决策清单。
+> 与 [`OPEN_SOURCE_PLAN.md`](./OPEN_SOURCE_PLAN.md) 的区别：那是执行步骤，这是待决策清单。
 >
 > **当前状态：3 项已解决，0 项待决。**
 

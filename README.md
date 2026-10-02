@@ -44,7 +44,6 @@ A股本地数据仓库的**数据契约 + 采集抽象 + 指标引擎**。
 `ingestors/fuyao` 的联网采集路径 —— 它按官方 API 文档实现，但尚未用真实
 凭据跑过完整 10 年窗口。
 
-历史遗留问题见 [`docs/OPEN_ISSUES.md`](docs/OPEN_ISSUES.md)（当前 3 项已解决）。
 
 ## 目录结构
 
@@ -155,7 +154,6 @@ Ingestor（协议）           只认数据契约，不认数据源
 | 文件 | 内容 |
 |---|---|
 | [`CONTEXT.md`](CONTEXT.md) | 术语表：数据模型、指标层、边界、采集 |
-| [`docs/OPEN_SOURCE_PLAN.md`](docs/OPEN_SOURCE_PLAN.md) | 分阶段执行计划 |
 | [`docs/data-sources.md`](docs/data-sources.md) | **数据来源说明与字段映射**（Phase 4 填充） |
 | [`docs/adr/`](docs/adr/) | 架构决策记录 |
 | [`docs/field-dictionary.md`](docs/field-dictionary.md) | 字段字典（62 表 846 列，生成物） |

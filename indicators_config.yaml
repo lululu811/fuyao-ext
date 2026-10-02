@@ -621,7 +621,7 @@ zettaranc:
     params: [{}]
     backend: pandas_ta
     enabled: true
-  # ⚠️ RSL 不在本 config 中 —— 见 docs/OPEN_ISSUES.md 第 1 条
+  # ⚠️ RSL 不在本 config 中。
   #
   # RSL（N 日涨幅在滚动窗口内的百分位排名）由 scripts/add_zettaranc_columns.py
   # 负责，产出 zettaranc_rsl_rank_15 / _rank_105。这两列是**线上表里实际存在的**。

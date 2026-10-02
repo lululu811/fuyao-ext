@@ -1,6 +1,6 @@
 # fuyao-ext 开源执行计划
 
-> 依据 [ADR-0001](adr/0001-distribute-schema-not-data.md) 至 [ADR-0005](adr/0005-ddl-as-contract-source-of-truth.md)。
+> 依据 [ADR-0001](../docs/adr/0001-distribute-schema-not-data.md) 至 [ADR-0005](../docs/adr/0005-ddl-as-contract-source-of-truth.md)。
 > 决策已全部收口，本文件是落地路径。
 
 ## 目标形态
@@ -36,7 +36,7 @@ fuyao-ext/
 - `~/.hithink-finance/scripts/hfkit.py` + 6 个 `*_db.py`（财报/基金/指数/期货/特色数据）
   是**作者自己写的**，在作者自己的 git 仓里，有 commit 记录。这是可复用的自有资产。
 - 唯一真正缺失的是 **`market_db.py`** —— OHLCV 与复权因子的落库，一直由上游的 `marketdb`
-  承担（见 [ADR-0002](adr/0002-exclude-hithink-financial-api.md)），作者从未写过。
+  承担（见 [ADR-0002](../docs/adr/0002-exclude-hithink-financial-api.md)），作者从未写过。
 
 所以采集层的工作量是**重构 + 补一个模块**，不是重写：
 
@@ -99,7 +99,7 @@ fuyao-ext/
 - [x] 生成器：字段字典（`scripts/gen_field_dictionary.py` → 62 表 846 列）、
       ER 图（`scripts/gen_er_diagram.py` → Mermaid，GitHub 原生渲染）、
       字段映射（`scripts/gen_field_mapping.py` → 269 条 / 34 表）均从 DDL 生成
-      （[ADR-0005](adr/0005-ddl-as-contract-source-of-truth.md)）
+      （[ADR-0005](../docs/adr/0005-ddl-as-contract-source-of-truth.md)）
 
 ## Phase 3 — 采集层
 
@@ -109,7 +109,7 @@ fuyao-ext/
       私有仓；凭据仍走仓外 `credentials.env` 的做法）
 - [x] **新写**行情 + 复权因子 Ingestor。复权因子取 `adjust=none|forward|backward`
       三种价格之比，不重算除权除息数学
-- [x] 第二个数据源的接入示例 → [`docs/adding-an-ingestor.md`](adding-an-ingestor.md)。
+- [x] 第二个数据源的接入示例 → [`docs/adding-an-ingestor.md`](../docs/adding-an-ingestor.md)。
       不绑具体数据源，讲清怎么写自己的 Ingestor 与三条易踩的坑。
       抽象有效性由 `FakeIngestor` 实测（合成数据、无网络、无凭据），
       走完同一 writer 与 schema 后 `v_daily_qfq.close == raw.close * forward_factor`
@@ -118,14 +118,14 @@ fuyao-ext/
 ## Phase 4 — 文档
 
 - [x] `docs/data-sources.md`：每个数据域的数据来源、上游接口、最小输入契约
-- [x] **字段映射关系** → [`docs/field-mapping.md`](field-mapping.md)，
+- [x] **字段映射关系** → [`docs/field-mapping.md`](../docs/field-mapping.md)，
       与 data-sources.md 分开。前者 269 条机械映射由生成器产出，
       后者是人读的来源说明
-- [x] **负面实验记录单独成章** → [`docs/negative-results.md`](negative-results.md)
+- [x] **负面实验记录单独成章** → [`docs/negative-results.md`](../docs/negative-results.md)
       7 个被否决指标（MAVP / VP / SAREXT / KST / EFI / CG / RVGI）逐条记录了
       否决证据，并区分了「实测是坏的」与「当前 schema 装不下」两种否决原因；
       附教训「能算、不报错、值域离谱」与手工复算流程
-- [x] 声明策略层私有（[ADR-0003](adr/0003-open-tooling-keep-strategies-private.md)）
+- [x] 声明策略层私有（[ADR-0003](../docs/adr/0003-open-tooling-keep-strategies-private.md)）
 
 ## Phase 5 — 清理与 CI
 
