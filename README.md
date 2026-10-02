@@ -160,6 +160,8 @@ Ingestor（协议）           只认数据契约，不认数据源
 | [`docs/adr/`](docs/adr/) | 架构决策记录 |
 | [`docs/field-dictionary.md`](docs/field-dictionary.md) | 字段字典（62 表 846 列，生成物） |
 | [`docs/field-mapping.md`](docs/field-mapping.md) | **字段映射：上游字段 → 契约列**（自建 Ingestor 的依据） |
+| [`docs/adding-an-ingestor.md`](docs/adding-an-ingestor.md) | **怎么写一个自己的 Ingestor** |
+| [`docs/negative-results.md`](docs/negative-results.md) | **负面实验记录**：30 个候选里否决了 7 个，以及为什么 |
 | [`schema/README.md`](schema/README.md) | 数据契约的用法与维护流程 |
 
 ### 架构决策记录

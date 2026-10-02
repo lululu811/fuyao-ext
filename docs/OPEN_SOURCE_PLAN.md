@@ -89,46 +89,58 @@ fuyao-ext/
 ## Phase 2 — 数据契约 DDL
 
 - [x] 从现存 7 个 DuckDB 导出全部 **62 张基表 + 41 个视图**的 DDL 到 `schema/*.sql`
-- [ ] `stg_*` 三张表全为空，**保留结构但必须在文档中如实标注"当前为空"**，
-      不可让其看起来像缺陷
+- [x] `stg_*` 三张表全为空，**保留结构但必须在文档中如实标注"当前为空"**，
+      不可让其看起来像缺陷 → `schema/README.md`
 - [x] 自检脚本 `scripts/export_schema.py --check`：干净内存库执行 DDL 后，
       与现存库逐对象逐列比对。
       **更正**：62 张表中 59 张**确有** PRIMARY KEY 声明（此前误记为"零主键"，
       起因是查了 `duckdb_constraints()`，而 DuckDB 不把约束存进 catalog，
       只在 `duckdb_tables().has_primary_key` 留布尔标记）。仅 3 张空的 `stg_*` 无 PK。
-- [ ] 生成器：表清单、ER 图、字段字典均从 DDL 生成（[ADR-0005](adr/0005-ddl-as-contract-source-of-truth.md)）
+- [x] 生成器：字段字典（`scripts/gen_field_dictionary.py` → 62 表 846 列）、
+      ER 图（`scripts/gen_er_diagram.py` → Mermaid，GitHub 原生渲染）、
+      字段映射（`scripts/gen_field_mapping.py` → 269 条 / 34 表）均从 DDL 生成
+      （[ADR-0005](adr/0005-ddl-as-contract-source-of-truth.md)）
 
 ## Phase 3 — 采集层
 
-- [ ] `ingestors/base.py`：Ingestor 协议。核心契约只含
+- [x] `ingestors/base.py`：Ingestor 协议。核心契约只含
       **证券标识 + 日线 OHLCV + 复权因子**；财报/指数/基金/期货/特色数据为可选能力
-- [ ] `ingestors/fuyao/`：重构自有 `hfkit.py`（凭据加载走仓外 `credentials.env` 的做法保留）
-- [ ] **新写**行情 + 复权因子 Ingestor
-- [ ] README 提供第二个数据源的接入示例（tushare 或 akshare 任选其一），
-      用于证明抽象层不是纸面设计
+- [x] `ingestors/fuyao/`：**新写**客户端（未复用 `hfkit.py` —— 它属于另一个
+      私有仓；凭据仍走仓外 `credentials.env` 的做法）
+- [x] **新写**行情 + 复权因子 Ingestor。复权因子取 `adjust=none|forward|backward`
+      三种价格之比，不重算除权除息数学
+- [x] 第二个数据源的接入示例 → [`docs/adding-an-ingestor.md`](adding-an-ingestor.md)。
+      不绑具体数据源，讲清怎么写自己的 Ingestor 与三条易踩的坑。
+      抽象有效性由 `FakeIngestor` 实测（合成数据、无网络、无凭据），
+      走完同一 writer 与 schema 后 `v_daily_qfq.close == raw.close * forward_factor`
+      仍成立、覆盖写幂等 —— 换数据源时除 Ingestor 外无任何代码需改动
 
 ## Phase 4 — 文档
 
-- [ ] `docs/data-sources.md`：每个数据域的数据来源、上游接口、
-      **字段映射关系**（这是"数据来源说明"的实际内容，也是使用者自建 Ingestor 的依据）
-- [ ] **`indicators_config.yaml:14-40` 的负面实验记录必须保留并单独成章**：
-      第二批 30 个候选中 7 个（23%）被实测否决（MAVP / VP / SAREXT / KST / EFI / CG / RVGI），
-      附教训「能算、不报错、值域离谱」。**这是全项目最稀缺的资产，开源界几乎无人记录
-      自己试过什么、为什么扔掉。**
-- [ ] 声明策略层私有（[ADR-0003](adr/0003-open-tooling-keep-strategies-private.md)）
+- [x] `docs/data-sources.md`：每个数据域的数据来源、上游接口、最小输入契约
+- [x] **字段映射关系** → [`docs/field-mapping.md`](field-mapping.md)，
+      与 data-sources.md 分开。前者 269 条机械映射由生成器产出，
+      后者是人读的来源说明
+- [x] **负面实验记录单独成章** → [`docs/negative-results.md`](negative-results.md)
+      7 个被否决指标（MAVP / VP / SAREXT / KST / EFI / CG / RVGI）逐条记录了
+      否决证据，并区分了「实测是坏的」与「当前 schema 装不下」两种否决原因；
+      附教训「能算、不报错、值域离谱」与手工复算流程
+- [x] 声明策略层私有（[ADR-0003](adr/0003-open-tooling-keep-strategies-private.md)）
 
 ## Phase 5 — 清理与 CI
 
-- [ ] **确认不迁入**：`strategies/`、`b1.md`、选股 SQL。
+- [x] **确认不迁入**：`strategies/`（11 文件）、`b1.md`、`scripts/b1_screen.sql`
       私有仓中的真实资金安排（单笔仓位、分批节奏的具体数字）比战法定义本身更敏感
-- [ ] `~/.hithink-finance` 中 **3 个 `.bak.*` 文件当前是被 git 跟踪的**，
-      若沿用其历史需剔除
-- [ ] 修正文档中已失真的表述（原 `AGENTS.md:5` 声称"无 git 仓库"，而仓库已于 2026-09-30 建立）
-- [ ] CI 三件事：
-      1. DDL 可执行性校验（干净库中建表成功）
-      2. 密钥扫描
-      3. 开发者本机绝对路径泄漏扫描
-- [ ] 硬编码 shebang 全部改为 `#!/usr/bin/env python3`
+- [x] `.bak.*` 剔除 —— 本仓从零 `git init`，未沿用任何历史，不存在此问题
+- [x] 修正失真表述 —— `AGENTS.md` 属于私有仓未迁入；本仓文档中的
+      "77 张表"（实为 62）与"零主键"（实为 59/62 有主键）已更正
+- [x] CI 四道闸门（`scripts/ci_checks.py` + `.github/workflows/ci.yml`）：
+      1. DDL 可执行性校验（逐域建干净库）
+      2. 结构一致性（DDL vs 源库；无源库时跳过）
+      3. 密钥扫描（硬编码凭据 / 高熵串 / UUID 放行）
+      4. 开发者本机绝对路径泄漏扫描
+- [x] shebang：新脚本统一 `#!/usr/bin/env python3`；迁入的指标脚本无 shebang，
+      以 `python scripts/x.py` 调用
 
 ---
 
