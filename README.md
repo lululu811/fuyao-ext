@@ -28,19 +28,23 @@ A股本地数据仓库的**数据契约 + 采集抽象 + 指标引擎**。
 
 ## 项目状态
 
-**⚠️ Phase 1 完成，仍不可端到端运行。** 指标引擎已迁入并通过 import 与语法校验，
-依赖改造与路径参数化已完成；但采集层（Phase 3）尚未实现，因此**目前没有数据可供计算**。
+**Phase 0–5 全部完成。** 装上依赖、填一个 API Key 即可从零建库灌数算指标。
 
 | 阶段 | 内容 | 状态 |
 |---|---|---|
 | 0 | 仓库骨架、许可、依赖清单、决策记录 | ✅ |
 | 1 | 指标引擎迁入、依赖改造、路径参数化 | ✅ |
-| 2 | 数据契约 DDL 导出与生成器 | ⬜ |
-| 3 | `Ingestor` 协议 + 上游参考实现 | ⬜ |
-| 4 | 文档：数据来源说明、字段字典 | 🟡 部分（上游说明已完成，字段映射待补） |
-| 5 | CI：DDL 可执行性 / 密钥 / 路径泄漏扫描 | ⬜ |
+| 2 | 数据契约 DDL 导出与自检 | ✅ |
+| 3 | `Ingestor` 协议 + 上游参考实现 | ✅ |
+| 4 | 文档：数据来源说明、字段字典、字段映射 | ✅ |
+| 5 | CI：DDL 可执行 / 结构一致 / 密钥 / 路径泄漏 | ✅ |
 
-待决策问题见 [`docs/OPEN_ISSUES.md`](docs/OPEN_ISSUES.md)。
+**验证状态**：`pytest` 9/9 通过（不联网、不需要 API Key）；
+`scripts/ci_checks.py` 4/4 通过。唯一未经过真实 API 端到端验证的是
+`ingestors/fuyao` 的联网采集路径 —— 它按官方 API 文档实现，但尚未用真实
+凭据跑过完整 10 年窗口。
+
+历史遗留问题见 [`docs/OPEN_ISSUES.md`](docs/OPEN_ISSUES.md)（当前 3 项已解决）。
 
 ## 目录结构
 
@@ -139,7 +143,12 @@ Ingestor（协议）           只认数据契约，不认数据源
 核心契约只含**证券标识 + 日线 OHLCV + 复权因子**；财报、指数、基金、期货、特色数据为可选能力。
 
 参考实现可被任意其他数据源替换 —— 换一个能产出上述三样东西的源即可。
-这一抽象是否真的够通用，**目前尚未被第二个实现验证**。
+
+这一抽象**已被验证**：`tests/test_ingestor_contract.py` 用一个完全合成的
+`FakeIngestor`（无网络、无凭据）走完同样的 writer 与 schema，端到端写入后
+`v_daily_qfq.close == raw.close * forward_factor` 仍成立，覆盖写幂等。
+换数据源时除 Ingestor 实现外**没有任何代码需要改动** —— 这是实测结论，
+不是设计意图。
 
 ## 文档
 
@@ -149,7 +158,9 @@ Ingestor（协议）           只认数据契约，不认数据源
 | [`docs/OPEN_SOURCE_PLAN.md`](docs/OPEN_SOURCE_PLAN.md) | 分阶段执行计划 |
 | [`docs/data-sources.md`](docs/data-sources.md) | **数据来源说明与字段映射**（Phase 4 填充） |
 | [`docs/adr/`](docs/adr/) | 架构决策记录 |
-| [`docs/field-dictionary.md`](docs/field-dictionary.md) | 字段字典（生成物，Phase 2） |
+| [`docs/field-dictionary.md`](docs/field-dictionary.md) | 字段字典（62 表 846 列，生成物） |
+| [`docs/field-mapping.md`](docs/field-mapping.md) | **字段映射：上游字段 → 契约列**（自建 Ingestor 的依据） |
+| [`schema/README.md`](schema/README.md) | 数据契约的用法与维护流程 |
 
 ### 架构决策记录
 

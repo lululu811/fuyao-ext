@@ -59,7 +59,7 @@ fuyao-ext/
 
 ## Phase 1 — 指标引擎迁移（从 `a-stock`）✅
 
-来源：`/Users/chenlei/007_DB/a-stock`。共迁入 14 个文件、3,626 行。
+来源：作者的私有仓 `a-stock`。共迁入 14 个文件、3,626 行。
 
 - [x] 迁移 `adapter/` → **`indicator/`**（改名：`adapter` 对开源项目是误导名，
       实际是引擎核心）、`schema/indicators_schema.py`、`scripts/*.py`、
@@ -127,7 +127,7 @@ fuyao-ext/
 - [ ] CI 三件事：
       1. DDL 可执行性校验（干净库中建表成功）
       2. 密钥扫描
-      3. 绝对路径泄漏扫描（`/Users/...`）
+      3. 开发者本机绝对路径泄漏扫描
 - [ ] 硬编码 shebang 全部改为 `#!/usr/bin/env python3`
 
 ---

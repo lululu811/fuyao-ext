@@ -18,11 +18,9 @@ duckdb special.duckdb    < special.sql
 duckdb indicators.duckdb < indicators.sql
 ```
 
-或者全量建到一个库里（视图不跨库依赖，因此可行）：
-
-```bash
-cat *.sql | duckdb mydata.duckdb
-```
+⚠️ **不要把所有域建进同一个库。** `_meta` 与 `_import_batches` 在每个域中
+都有定义，跨域重名，一次性 `cat *.sql` 会因重名失败。保持每域一个文件，
+与上游的物理布局一致。`scripts/ci_checks.py` 也是逐域建库校验的。
 
 **这里只有结构，没有数据。** 数据需自行获取并灌入 —— 见
 [`data-sources.md`](../docs/data-sources.md)。

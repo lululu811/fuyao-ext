@@ -157,4 +157,47 @@ def primary_key_of(table: str) -> tuple[str, ...]:
     return _pks().get(table, ())
 
 
-__all__ = ["TARGET_COLUMNS", "DOMAINS", "table_columns", "domain_tables", "primary_key_of"]
+@lru_cache(maxsize=1)
+def _typed() -> dict[str, list[tuple[str, str]]]:
+    """{表名: [(列名, 类型), ...]}。"""
+    out: dict[str, list[tuple[str, str]]] = {}
+    for domain in DOMAINS:
+        text = (SCHEMA_DIR / f"{domain}.sql").read_text()
+        for m in _CREATE_RE.finditer(text):
+            table = _unquote(m.group("name"))
+            cols: list[tuple[str, str]] = []
+            for item in _split_top_level(m.group("body")):
+                parts = item.split()
+                if not parts or parts[0].upper() in {
+                    "PRIMARY", "UNIQUE", "FOREIGN", "CHECK", "CONSTRAINT"
+                }:
+                    continue
+                col = _unquote(parts[0])
+                typ = parts[1] if len(parts) > 1 else ""
+                # 去掉行内约束修饰（NOT NULL / PRIMARY KEY / DEFAULT(...)）
+                for kw in ("NOT NULL", "NULL", "PRIMARY KEY", "UNIQUE"):
+                    typ = re.sub(rf"\b{kw}\b", "", typ, flags=re.IGNORECASE)
+                typ = re.sub(r"\bDEFAULT\s*\(.*?\)\s*$", "", typ, flags=re.IGNORECASE)
+                cols.append((col, typ.strip()))
+            out[table] = cols
+    return out
+
+
+def column_types(table: str) -> list[tuple[str, str]]:
+    """取 [(列名, 类型), ...]，用于生成字段字典。"""
+    try:
+        return _typed()[table]
+    except KeyError:
+        raise KeyError(
+            f"未知表 {table!r}。已定义：{sorted(TARGET_COLUMNS)}"
+        ) from None
+
+
+__all__ = [
+    "TARGET_COLUMNS",
+    "DOMAINS",
+    "table_columns",
+    "domain_tables",
+    "primary_key_of",
+    "column_types",
+]

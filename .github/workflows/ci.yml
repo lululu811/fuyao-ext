@@ -1,0 +1,38 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: 安装依赖
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[dev]"
+
+      - name: 契约测试
+        run: pytest -q
+
+      - name: 文档与 DDL 未漂移
+        run: |
+          python scripts/gen_field_dictionary.py
+          git diff --exit-code docs/field-dictionary.md \
+            || { echo "字段字典已过期，请运行 python scripts/gen_field_dictionary.py"; exit 1; }
+
+      - name: 发布前闸门
+        # DDL 可执行 / 密钥扫描 / 路径泄漏。
+        # 「结构一致」需要作者的本地数据工作区，CI 中会自动跳过。
+        run: python scripts/ci_checks.py
+
+      - name: lint
+        run: ruff check paths.py indicator schema ingestors scripts tests
