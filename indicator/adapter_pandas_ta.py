@@ -259,7 +259,8 @@ def calc_emv(df, params, col_prefix, outputs):
 
 
 def calc_eom(df, params, col_prefix, outputs):
-    return _series_to_df(_to_series(ta.eom(df["high"], df["low"], df["close"], df["volume"], length=params[0])), col_prefix)
+    raw = ta.eom(df["high"], df["low"], df["close"], df["volume"], length=params[0])
+    return _series_to_df(_to_series(raw), col_prefix)
 
 
 def calc_kvo(df, params, col_prefix, outputs):

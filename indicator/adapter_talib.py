@@ -46,7 +46,10 @@ def calc_natr(df, period): return talib.NATR(_np(df["high"]), _np(df["low"]), _n
 def calc_trange(df): return talib.TRANGE(_np(df["high"]), _np(df["low"]), _np(df["close"]))
 def calc_obv(df): return talib.OBV(_np(df["close"]), _np(df["volume"]))
 def calc_ad(df): return talib.AD(_np(df["high"]), _np(df["low"]), _np(df["close"]), _np(df["volume"]))
-def calc_mfi(df, period): return talib.MFI(_np(df["high"]), _np(df["low"]), _np(df["close"]), _np(df["volume"]), timeperiod=period)
+def calc_mfi(df, period):
+    return talib.MFI(
+        _np(df["high"]), _np(df["low"]), _np(df["close"]), _np(df["volume"]), timeperiod=period
+    )
 def calc_mom(df, period): return talib.MOM(_np(df["close"]), timeperiod=period)
 def calc_roc(df, period): return talib.ROC(_np(df["close"]), timeperiod=period)
 def calc_rocp(df, period): return talib.ROCP(_np(df["close"]), timeperiod=period)
@@ -96,7 +99,10 @@ def calc_donchian(df, period):
     return talib.DONCHIAN(_np(df["high"]), _np(df["low"]), timeperiod=period)
 
 def calc_adosc(df, fast, slow):
-    return talib.ADOSC(_np(df["high"]), _np(df["low"]), _np(df["close"]), _np(df["volume"]), fastperiod=fast, slowperiod=slow)
+    return talib.ADOSC(
+        _np(df["high"]), _np(df["low"]), _np(df["close"]), _np(df["volume"]),
+        fastperiod=fast, slowperiod=slow,
+    )
 
 def calc_psar(df):
     return talib.SAR(_np(df["high"]), _np(df["low"]), acceleration=0.02, maximum=0.2)

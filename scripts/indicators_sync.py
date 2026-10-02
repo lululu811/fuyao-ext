@@ -240,7 +240,11 @@ def run(lookback: int = DEFAULT_LOOKBACK):
 
                 if i % 50 == 0:
                     elapsed = time.time() - t0
-                    print(f"  [{i}/{len(codes)}] {elapsed:.1f}s ({i/elapsed:.1f} codes/s, ok={computed}, fail={failed})")
+                    rate = i / elapsed
+                    print(
+                        f"  [{i}/{len(codes)}] {elapsed:.1f}s "
+                        f"({rate:.1f} codes/s, ok={computed}, fail={failed})"
+                    )
 
         con.commit()
     finally:
